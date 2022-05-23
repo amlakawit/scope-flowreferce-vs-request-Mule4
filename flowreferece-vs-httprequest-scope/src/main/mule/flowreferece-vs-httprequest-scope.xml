@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d3e9f284-3743-4f54-8af8-f18c6a3833de" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="9e3b09fc-e2f5-4982-a507-9e3e4a9c8aef" >
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
+	<flow name="flowreferece-main-flow" doc:id="bb8bcacf-5e07-417d-87f5-04652d4e3386" >
+		<http:listener doc:name="/GET" doc:id="5f8795a6-9836-4939-b13c-dfca1b45e838" config-ref="HTTP_Listener_config" path="flowreferece-scope-demo"/>
+		<file:read doc:name="Read JSON File" doc:id="43a3668f-4594-4616-9e19-725e9e34b3fa" path="C:\workspace\MuleSoft\MuleSoftWithFish\Hands-On\flowreference-vs-httprequest\airports.json" outputMimeType="application/json"/>
+		<set-variable value="#[payload.^mediaType]" doc:name="Payload MIME Type" doc:id="237a3272-5ece-43a7-81f9-86eee34c02ad" variableName="mainFlowPayloadMimeType"/>
+		<logger level="INFO" doc:name="Log Payload MIME Type" doc:id="f1e32f35-9abf-4c73-a8e3-56f63e93c076" message="Payload MIME Type:  #[vars.mainFlowPayloadMimeType]"/>
+		<flow-ref doc:name="Flow Reference" doc:id="7ab834db-a4c3-4527-b106-5264157ef3ac" name="flowreferece-private-flow" target="child-flow-payload"/>
+		<logger level="INFO" doc:name="Final Pyaload MIME Type" doc:id="c4f63a67-89c0-4d03-ab49-b200b10706c3" message="Payload MIME Type in at the end of the main Flow:  #[payload.^mediaType]"/>
+	</flow>
+	<flow name="flowreferece-private-flow" doc:id="87b07e7b-1242-4e0d-84f0-ac126b3b165e" >
+		<ee:transform doc:name="to CSV" doc:id="d4c07257-b7e3-43b0-90c3-b4b482917867" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+
+payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload.^mediaType]" doc:name="Payload MIME Type" doc:id="7093dd59-6811-41d7-8d0a-a7ee43fc0270" variableName="privateFlowPayloadMimeType"/>
+		<logger level="INFO" doc:name="Payload MIME Type" doc:id="a5a9433c-f8ef-455d-a4a4-155c227f29c8" message="Payload MIME Type in Private Flow:  #[payload.^mediaType]"/>
+	</flow>
+	<flow name="request-main-flow" doc:id="29b68435-4b95-4b09-a964-f27c8b4e49e1" >
+		<http:listener doc:name="Listener" doc:id="2d15ce61-bb7d-40b9-bbe9-509d62f36d15" config-ref="HTTP_Listener_config" path="request-scope-demo"/>
+		<file:read doc:name="Read JSON Data" doc:id="b43ba5d5-1534-4335-a3c2-d4768ed6ef57" path="C:\workspace\MuleSoft\MuleSoftWithFish\Hands-On\flowreference-vs-httprequest\airports.json" outputMimeType="application/json"/>
+		<set-variable value="#[payload.^mediaType]" doc:name="Payload MIME Type" doc:id="0434b5f2-2c0a-4632-a8a0-740548420e45" variableName="mainRequestPayloadMimeType"/>
+		<logger level="INFO" doc:name="Main Flow MIME Type " doc:id="6e83a60b-6c24-40b8-861d-07c89d2fb2b5" message="Initial payload MIME Type in Request demo: #[payload.^mediaType]"/>
+		<http:request method="GET" doc:name="Request" doc:id="21742aed-d9e2-4fcd-a4e1-bea47ac098da" config-ref="HTTP_Request_configuration" path="/readCSV" target="requestFlowPayload"/>
+		<logger level="INFO" doc:name="Final payload MIME type fo request  main flow" doc:id="b488ac3e-05ed-4eaf-8c9b-8a16996b2fc3" message="Request-Main-Flow Final MIME Type: #[payload.^mediaType]"/>
+	</flow>
+	<flow name="requested-flow" doc:id="1ceeae3c-15d1-4bae-aecd-26ec79f58a9f" >
+		<http:listener doc:name="Listener" doc:id="4502c814-b148-45b3-81f2-db5f77c56546" config-ref="HTTP_Listener_config" path="/readCSV"/>
+		<file:read doc:name="Read CSV" doc:id="acaf6761-8daa-4dc4-9495-64d562741803" path="C:\workspace\MuleSoft\MuleSoftWithFish\data\airports.csv" outputMimeType="application/csv"/>
+		<set-variable value="#[payload.^mediaType]" doc:name="Requested Flow Payload MIME Type " doc:id="e53a12c9-3fcf-4b6d-a5c6-6478183ec676" variableName="requested-flow-payload-mime-type"/>
+		<logger level="INFO" doc:name="Log Payload MIME Type" doc:id="83f2e315-314f-4ba7-bf2f-af3eba883519" message="End of Requested flow MIME Type: #[payload.^mediaType]"/>
+	</flow>
+</mule>
